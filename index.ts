@@ -1,6 +1,6 @@
 import express from 'express'
 import session from 'express-session'
-import { Pool, QueryConfig } from 'pg'
+import { Pool, QueryConfig, QueryResult } from 'pg'
 import crypto from 'crypto'
 require('dotenv').config()
 const app = express()
@@ -76,10 +76,70 @@ app.post('/api/signup', (req, res) => {
     })
 })
 
+app.get('/api/surveys/:user*?', async (req, res) => {
+    let client = await pool.connect()
+    let result = await client.query({ // normal query to get the available events
+        text: 'SELECT name, fields, expiry FROM surveys WHERE available=TRUE'
+    })
+    let surveys = result.rows
+    if (req.params.user) {  // filter already answered surveys by username
+        let queries: Promise<QueryResult<any>>[] = []
+        for (let survey of surveys) {   // for each survey query the respective table
+            queries.push(client.query({
+                text: `SELECT * FROM "${survey.name}" WHERE username = $1`,
+                values: [req.params.user]
+            }))
+        }
+        let availableSurveys = await Promise.all(queries)   // await all the queries
+        // filter out the queries with the answers from the user
+        surveys = surveys.filter((v, i) => availableSurveys[i].rows.length == 0)
+    }
+    client.release()
+    res.send(surveys)
+})
+
+app.post('/api/surveys/:survey', async (req, res) => {
+    let client = await pool.connect()
+
+    //login
+    let hash = crypto.createHash('sha256')
+    hash.update(req.body.password ? req.body.password : '')
+    let loginQuery = await client.query({
+        text: 'SELECT * FROM users WHERE username=$1 AND password=$2',
+        values: [req.body.username, hash.digest('hex')]
+    })
+    if (loginQuery.rows.length == 0) {
+        res.send({ success: false, error: 'Credenziali sbagliate' })
+        return
+    }
+
+    let result = await client.query({
+        text: 'SELECT fields FROM surveys WHERE name=$1',
+        values: [req.params.survey]
+    })
+    let fields = Object.keys(result.rows[0].fields)
+    let valNumbers: string[] = ['$1']
+    let answers: string[] = [req.body.username]
+    for (let i = 0; i < fields.length; i++) {
+        valNumbers.push('$' + (i + 2))
+        answers.push(req.body.answers[fields[i]])
+    }
+    try {
+        await client.query({
+            text: `INSERT INTO "${req.params.survey}" (username, ${fields.join(', ')}) VALUES (${valNumbers.join(', ')})`,
+            values: answers
+        })
+        res.send({ success: true })
+    } catch (e) {
+        if (e.message.includes('duplicate')) res.send({ success: false, error: 'Hai già risposto a questo sondaggio' })
+        else res.send({ success: false, error: 'Non esiste questo sondaggio' })
+    } finally {
+        client.release()
+    }
+})
+
 app.get('/api/events', (req, res) => {
-    console.log('responding')
     pool.connect().then(async client => {
-        console.log('database')
         let result = await client.query({
             text: 'SELECT to_char(date + INTERVAL\'1 hour\', \'yyyy-mm-dd\') AS date, description FROM events'
         })
