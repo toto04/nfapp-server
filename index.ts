@@ -76,6 +76,27 @@ app.post('/api/signup', (req, res) => {
     })
 })
 
+app.get('/api/user/:username', async (req, res) => {
+    let client = await pool.connect()
+    let result = await client.query({
+        text: 'SELECT firstname, lastname, class, role FROM users WHERE username=$1',
+        values: [req.params.username]
+    })
+    client.release()
+    res.send(result.rows[0])
+})
+
+app.get('/api/posts/:page*?', async (req, res) => {
+    let page = req.params.page ? parseInt(req.params.page) : 0
+    let client = await pool.connect()
+    let result = await client.query({
+        text: 'SELECT * FROM posts ORDER BY time DESC LIMIT 10 OFFSET $1',
+        values: [page * 10]
+    })
+    client.release()
+    res.send(result.rows)
+})
+
 app.get('/api/surveys/:user*?', async (req, res) => {
     let client = await pool.connect()
     let result = await client.query({ // normal query to get the available events
