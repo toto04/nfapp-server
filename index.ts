@@ -3,13 +3,21 @@ import session from 'express-session'
 import { Pool, QueryConfig, QueryResult } from 'pg'
 import crypto from 'crypto'
 require('dotenv').config()
+
+async function login(username: string = '', password: string = ''): Promise<boolean> {
+    const client = await pool.connect()
+    const response = await client.query({
+        text: 'SELECT * FROM users WHERE username=$1',
+        values: [username]
+    })
+    client.release()
+    const hash = crypto.createHash('sha256')
+    hash.update(password)
+
+    return response.rowCount != 0 && response.rows[0].password == hash.digest('hex')
+}
+
 const app = express()
-app.use(session({
-    name: 'nfapp_cookie',
-    secret: 'eliaculo',
-    resave: false,
-    saveUninitialized: false
-}))
 app.use(express.json())
 
 let connectionOptions = process.env.DATABASE_URL
@@ -23,41 +31,26 @@ let connectionOptions = process.env.DATABASE_URL
 const pool = new Pool(connectionOptions)
 
 app.get('/', (req, res) => {
-    // session test, ignore
-    console.log(req.session)
-    if (!req.session) {
-        res.send('no')
-        return
-    }
-    if (req.session.count == undefined) {
-        req.session.count = 0
-    } else {
-        req.session.count++
-    }
-    res.json(req.session.count)
+    res.send('no elia, non ancora')
 })
 
-app.post('/api/login', (req, res) => {
-    pool.connect().then(async client => {
-        const query: QueryConfig = {
-            text: 'SELECT * FROM users WHERE username = $1',
+app.post('/api/login', async (req, res) => {
+    let logged = await login(req.body.usr, req.body.pwd)
+    if (logged) {
+        let client = await pool.connect()
+        let result = await client.query({
+            text: 'SELECT * FROM users WHERE username=$1',
             values: [req.body.usr]
-        }
-        const result = await client.query(query)
-        client.release()
-        let hash = crypto.createHash('sha256')
-        hash.update(req.body.pwd)
-        if (!result.rows[0]) res.send({
-            logged: false
         })
-        else res.send({
-            logged: result.rows[0].password == hash.digest('hex'),
+        client.release()
+        res.send({
+            logged,
             username: req.body.usr,
             password: req.body.pwd,
             firstName: result.rows[0].firstname,
             lastName: result.rows[0].lastname
         })
-    })
+    } else res.send({ logged })
 })
 
 app.post('/api/signup', (req, res) => {
@@ -90,28 +83,82 @@ app.get('/api/user/:username', async (req, res) => {
 })
 
 app.get('/api/posts/:page*?', async (req, res) => {
+    const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
     let page = req.params.page ? parseInt(req.params.page) : 0
     let client = await pool.connect()
     let result = await client.query({
         text: 'SELECT * FROM posts ORDER BY time DESC LIMIT 10 OFFSET $1',
         values: [page * 10]
     })
+
+    if (logged) {
+        let queries = []
+        for (const post of result.rows) queries.push(client.query({
+            text: 'SELECT * FROM likes WHERE "user"=$1 AND post=$2',
+            values: [req.header('x-nfapp-username'), post.id]
+        }))
+        let likes = await Promise.all(queries)
+        for (let i = 0; i < result.rowCount; i++) result.rows[i].liked = likes[i].rowCount != 0
+    }
+
     client.release()
     res.send(result.rows)
 })
 
-app.get('/api/surveys/:user*?', async (req, res) => {
+app.post('/api/like/:post', async (req, res) => {
+    const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
+    if (!logged) {
+        res.send({ success: false, error: 'invalid credentials' })
+        return
+    }
+
+    const client = await pool.connect()
+    try {
+        await client.query({
+            text: 'INSERT INTO likes VALUES ($1, $2)',
+            values: [req.header('x-nfapp-username'), req.params.post]
+        })
+        res.send({ success: true })
+    } catch (e) {
+        res.send({ success: false, error: e.detail })
+    } finally {
+        client.release()
+    }
+})
+
+app.post('/api/dislike/:post', async (req, res) => {
+    const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
+    if (!logged) {
+        res.send({ success: false, error: 'invalid credentials' })
+        return
+    }
+
+    const client = await pool.connect()
+    try {
+        await client.query({
+            text: 'DELETE FROM likes WHERE "user"=$1 AND post=$2',
+            values: [req.header('x-nfapp-username'), req.params.post]
+        })
+        res.send({ success: true })
+    } catch (e) {
+        res.send({ success: false, error: e.detail })
+    } finally {
+        client.release()
+    }
+})
+
+app.get('/api/surveys', async (req, res) => {
     let client = await pool.connect()
     let result = await client.query({ // normal query to get the available events
         text: 'SELECT name, fields, expiry FROM surveys WHERE available=TRUE'
     })
     let surveys = result.rows
-    if (req.params.user) {  // filter already answered surveys by username
-        let queries: Promise<QueryResult<any>>[] = []
+    if (req.header('x-nfapp-username')) {  // filter already answered surveys by username
+        let queries = []
         for (let survey of surveys) {   // for each survey query the respective table
             queries.push(client.query({
                 text: `SELECT * FROM "${survey.name}" WHERE username = $1`,
-                values: [req.params.user]
+                values: [req.header('x-nfapp-username')]
             }))
         }
         let availableSurveys = await Promise.all(queries)   // await all the queries
@@ -126,13 +173,8 @@ app.post('/api/surveys/:survey', async (req, res) => {
     let client = await pool.connect()
 
     //login
-    let hash = crypto.createHash('sha256')
-    hash.update(req.body.password ? req.body.password : '')
-    let loginQuery = await client.query({
-        text: 'SELECT * FROM users WHERE username=$1 AND password=$2',
-        values: [req.body.username, hash.digest('hex')]
-    })
-    if (loginQuery.rows.length == 0) {
+    let username = req.header('x-nfapp-username') || '', password = req.header('x-nfapp-password') || ''
+    if (!await login(username, password)) {
         res.send({ success: false, error: 'Credenziali sbagliate' })
         return
     }
@@ -143,7 +185,7 @@ app.post('/api/surveys/:survey', async (req, res) => {
     })
     let fields = Object.keys(result.rows[0].fields)
     let valNumbers: string[] = ['$1']
-    let answers: string[] = [req.body.username]
+    let answers: string[] = [username]
     for (let i = 0; i < fields.length; i++) {
         valNumbers.push('$' + (i + 2))
         answers.push(req.body.answers[fields[i]])
@@ -175,5 +217,3 @@ app.get('/api/events', (req, res) => {
 app.listen(process.env.PORT || 2001, () => {
     console.log('server listening', process.env.PORT)
 })
-
-
