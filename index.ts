@@ -1,8 +1,9 @@
 import express from 'express'
-import session from 'express-session'
-import { Pool, QueryConfig, QueryResult } from 'pg'
+import Expo from 'expo-server-sdk'
+import { Pool, QueryConfig, QueryResult, Query } from 'pg'
 import crypto from 'crypto'
 require('dotenv').config()
+let expo = new Expo()
 
 async function login(username: string = '', password: string = ''): Promise<boolean> {
     const client = await pool.connect()
@@ -30,8 +31,72 @@ let connectionOptions = process.env.DATABASE_URL
     }
 const pool = new Pool(connectionOptions)
 
-app.get('/', (req, res) => {
-    res.send('no elia, non ancora')
+app.post('/api/registertoken', async (req, res) => {
+    if (!Expo.isExpoPushToken(req.body.token)) {
+        res.send({ success: false, error: 'invalid token' })
+        return
+    }
+    let client = await pool.connect()
+    try {
+        await client.query({
+            text: 'INSERT INTO notificationtokens VALUES ($1) ON CONFLICT (token) DO UPDATE SET lastupdated = CURRENT_TIMESTAMP',
+            values: [req.body.token]
+        })
+        res.send({ success: true })
+        if (await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))) client.query({
+            text: 'UPDATE notificationtokens SET "user" = $1 WHERE token = $2',
+            values: [req.header('x-nfapp-username'), req.body.token]
+        })
+    } catch (e) {
+        res.send({ success: false, error: 'Tommaso Morganti è un coglione' })
+        console.warn(e)
+    } finally {
+        client.release()
+    }
+})
+
+app.post('/api/notification', async (req, res) => {
+    if (!req.body.title) {
+        res.send({ success: false, error: 'a title must be provided' })
+        return
+    }
+
+    let data: {type: string, postID?: number}
+    switch (req.body.type) {
+        case 'newPost':
+            if (!req.body.postID) {
+                res.send({ success: false, error: 'a postID must be provided for type "newPost"' })
+                return
+            }
+            data = { type: 'newPost', postID: req.body.postID }
+            break
+        default:
+            data = { type: req.body.type }
+    }
+
+    let client = await pool.connect()
+    let tokens = await client.query({
+        text: 'SELECT token FROM notificationtokens WHERE CURRENT_TIMESTAMP - lastupdated < interval \'30 days\'' + ((data.type == 'newSurvey') ? ' AND "user" IS NOT NULL' : '')
+    })
+    let chunks = expo.chunkPushNotifications(tokens.rows.map(({ token }) => ({
+        to: token,
+        sound: 'default',
+        data,
+        title: req.body.title,
+        body: req.body.body
+    })))
+    let tickets = []
+    for (let chunk of chunks) {
+        try {
+            tickets.push(...await expo.sendPushNotificationsAsync(chunk))
+        } catch (e) { console.error(e) }
+    }
+    res.send({ success: true })
+    await client.query({
+        text: 'INSERT INTO tickets VALUES ($1)',
+        values: [JSON.stringify(tickets)]
+    })
+    client.release()
 })
 
 app.post('/api/login', async (req, res) => {
@@ -80,6 +145,34 @@ app.get('/api/user/:username', async (req, res) => {
     })
     client.release()
     res.send(result.rows[0])
+})
+
+app.get('/api/post/:id', async (req, res) => {
+    const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
+    let client = await pool.connect()
+    try {
+        let result = await client.query({
+            text: 'SELECT * FROM posts WHERE id = $1',
+            values: [req.params.id]
+        })
+        if (result.rowCount == 0) throw new Error()
+        let post = result.rows[0]
+        console.log(post)
+
+        if (logged) {
+            let likes = await client.query({
+                text: 'SELECT * FROM likes WHERE "user"=$1 AND post=$2',
+                values: [req.header('x-nfapp-username'), post.id]
+            })
+            post.liked = likes.rowCount == 1
+        }
+
+        client.release()
+        res.send(post)
+    } catch (e) {
+        console.log(e)
+        res.send({ success: false, error: 'invalid post id' })
+    }
 })
 
 app.get('/api/posts/:page*?', async (req, res) => {
@@ -212,6 +305,10 @@ app.get('/api/events', (req, res) => {
         client.release()
         res.send(result.rows)
     })
+})
+
+app.use((req, res, next) => {
+    res.status(404).send({ success: false, error: '404, invalid endpoint' })
 })
 
 app.listen(process.env.PORT || 2001, () => {
