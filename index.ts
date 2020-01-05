@@ -1,9 +1,22 @@
-import express from 'express'
+import express, { NextFunction } from 'express'
 import Expo from 'expo-server-sdk'
 import { Pool, QueryConfig, QueryResult, Query } from 'pg'
 import crypto from 'crypto'
 require('dotenv').config()
 let expo = new Expo()
+
+const app = express()
+app.use(express.json({limit: '50mb'}))
+
+let connectionOptions = process.env.DATABASE_URL
+    ? { connectionString: process.env.DATABASE_URL, ssl: true }
+    : {
+        host: process.env.DB_HOST,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME
+    }
+const pool = new Pool(connectionOptions)
 
 async function login(username: string = '', password: string = ''): Promise<boolean> {
     const client = await pool.connect()
@@ -18,41 +31,26 @@ async function login(username: string = '', password: string = ''): Promise<bool
     return response.rowCount != 0 && response.rows[0].password == hash.digest('hex')
 }
 
-const app = express()
-app.use(express.json())
-
-let connectionOptions = process.env.DATABASE_URL
-    ? { connectionString: process.env.DATABASE_URL, ssl: true }
-    : {
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASSWORD,
-        database: process.env.DB_NAME
-    }
-const pool = new Pool(connectionOptions)
-
 app.post('/api/registertoken', async (req, res) => {
     if (!Expo.isExpoPushToken(req.body.token)) {
         res.send({ success: false, error: 'invalid token' })
         return
     }
     let client = await pool.connect()
-    try {
-        await client.query({
-            text: 'INSERT INTO notificationtokens VALUES ($1) ON CONFLICT (token) DO UPDATE SET lastupdated = CURRENT_TIMESTAMP',
-            values: [req.body.token]
-        })
-        res.send({ success: true })
-        if (await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))) client.query({
-            text: 'UPDATE notificationtokens SET "user" = $1 WHERE token = $2',
-            values: [req.header('x-nfapp-username'), req.body.token]
-        })
-    } catch (e) {
-        res.send({ success: false, error: 'Tommaso Morganti è un coglione' })
-        console.warn(e)
-    } finally {
-        client.release()
-    }
+    await client.query({
+        text: 'INSERT INTO notificationtokens VALUES ($1) ON CONFLICT (token) DO UPDATE SET lastupdated = CURRENT_TIMESTAMP',
+        values: [req.body.token]
+    })
+    res.send({ success: true })
+    if (await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))) client.query({
+        text: 'UPDATE notificationtokens SET "user" = $1 WHERE token = $2',
+        values: [req.header('x-nfapp-username'), req.body.token]
+    })
+    client.release()
+})
+
+app.post('/error/:message', (req, res) => {
+    throw new Error(req.params.message)
 })
 
 app.post('/api/notification', async (req, res) => {
@@ -61,7 +59,7 @@ app.post('/api/notification', async (req, res) => {
         return
     }
 
-    let data: {type: string, postID?: number}
+    let data: { type: string, postID?: number }
     switch (req.body.type) {
         case 'newPost':
             if (!req.body.postID) {
@@ -112,6 +110,7 @@ app.post('/api/login', async (req, res) => {
             logged,
             username: req.body.usr,
             password: req.body.pwd,
+            classname: result.rows[0].class,
             firstName: result.rows[0].firstname,
             lastName: result.rows[0].lastname
         })
@@ -157,7 +156,6 @@ app.get('/api/post/:id', async (req, res) => {
         })
         if (result.rowCount == 0) throw new Error()
         let post = result.rows[0]
-        console.log(post)
 
         if (logged) {
             let likes = await client.query({
@@ -170,7 +168,6 @@ app.get('/api/post/:id', async (req, res) => {
         client.release()
         res.send(post)
     } catch (e) {
-        console.log(e)
         res.send({ success: false, error: 'invalid post id' })
     }
 })
@@ -307,10 +304,70 @@ app.get('/api/events', (req, res) => {
     })
 })
 
+app.get('/api/schoolsharing/note/:id', async (req, res) => {
+    const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
+    if (!logged) {
+        res.send({ success: false, error: 'invalid credentials' })
+        return
+    }
+
+    let client = await pool.connect()
+    let note = await client.query({
+        text: 'SELECT * FROM notes WHERE id = $1',
+        values: [req.params.id]
+    })
+    client.release()
+    res.send(note.rows[0])
+})
+
+app.route('/api/schoolsharing/notes/:section/:class/:subject')
+    .get(async (req, res) => {
+        const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
+        if (!logged) {
+            res.send({ success: false, error: 'invalid credentials' })
+            return
+        }
+        console.log(req.params.section, req.params.class, req.params.subject)
+        let client = await pool.connect()
+        let notes = await client.query({
+            text: 'SELECT id, data AS images, firstname || \' \' || lastname AS author, title, description, postingdate FROM notes JOIN users ON "user" = users.username WHERE section = $1 AND notes.class = $2 AND subject = $3',
+            values: [req.params.section, req.params.class, req.params.subject]
+        })
+        client.release()
+        res.send(notes.rows)
+    })
+    .post(async (req, res) => {
+        const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
+        if (!logged) {
+            res.send({ success: false, error: 'invalid credentials' })
+            return
+        }
+        let client = await pool.connect()
+        try {
+            await client.query({
+                text: 'INSERT INTO notes ("section", "class", "subject", "user", "title", "description", "data") VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                values: [req.params.section, req.params.class, req.params.subject, req.header('x-nfapp-username'), req.body.title, req.body.description, req.body.images]
+            })
+            res.send({ success: true })
+        } catch (e) {
+            res.send({ success: false })
+        } finally {
+            client.release()
+        }
+    })
+
+// 404 error handler
 app.use((req, res, next) => {
     res.status(404).send({ success: false, error: '404, invalid endpoint' })
 })
 
+// Internal server error handler, for when something brakes
+app.use((err: Error, req: express.Request, res: express.Response, next: NextFunction) => {
+    let requestInfo = { method: req.method, ip: req.ip, url: req.originalUrl, body: req.body, username: req.header('x-nfapp-username') }
+    console.error(`\x1b[31m[ERROR HANDLER] An error occurred at time: ${new Date(Date.now())}\nError:\x1b[0m`, err, `\n\n\x1b[31mRequest: \x1b[0m`, requestInfo)
+    res.status(500).send({ success: false, error: '500, internal server error', details: { error: { name: err.name, message: err.message, stack: err.stack }, request: requestInfo } })
+})
+
 app.listen(process.env.PORT || 2001, () => {
-    console.log('server listening', process.env.PORT)
+    console.log('server listening on port', process.env.PORT)
 })
