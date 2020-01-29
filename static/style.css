@@ -76,3 +76,9 @@ textarea {
 input[type=date], input[type=file] {
     margin-bottom: 15px;
 }
+.formheader {
+    cursor: pointer;
+}
+.scelte form {
+    display: none;
+}
