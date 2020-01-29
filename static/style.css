@@ -23,6 +23,9 @@ h1{
     background-color: rgba(255, 255, 255, .75);
 
 }
+.scelte:last-of-type {
+    margin-bottom: 20px;
+}
 .formheader {
     background-color: #ff9000;
 }
@@ -66,4 +69,10 @@ input[type=submit] {
 input[type=submit]:active, input[type=submit]:hover {
     background-color: #b86800;
     box-shadow: #1e1b20 2px 2px 2px;
+}
+textarea {
+    height: 100px;
+}
+input[type=date], input[type=file] {
+    margin-bottom: 15px;
 }
