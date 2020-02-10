@@ -6,7 +6,7 @@ require('dotenv').config()
 let expo = new Expo()
 
 const app = express()
-app.use(express.json({limit: '50mb'}))
+app.use(express.json({ limit: '10mb' }))
 
 let connectionOptions = process.env.DATABASE_URL
     ? { connectionString: process.env.DATABASE_URL, ssl: true }
@@ -177,7 +177,7 @@ app.get('/api/posts/:page*?', async (req, res) => {
     let page = req.params.page ? parseInt(req.params.page) : 0
     let client = await pool.connect()
     let result = await client.query({
-        text: 'SELECT * FROM posts ORDER BY time DESC LIMIT 10 OFFSET $1',
+        text: 'SELECT id, author, title, body, image, time, COUNT("user") as likes FROM posts LEFT JOIN likes ON likes.post = posts.id GROUP BY (posts.id) ORDER BY time DESC LIMIT 10 OFFSET $1',
         values: [page * 10]
     })
 
@@ -304,6 +304,22 @@ app.get('/api/events', (req, res) => {
     })
 })
 
+app.get('/api/schoolsharing/note/:postID/(:imageIndex).jpg', async (req, res) => {
+    // This route serves the images as raw jpeg, with warning image on error
+    let client = await pool.connect()
+    let result = await client.query({
+        text: 'SELECT data[$1] AS image FROM notes WHERE id=$2',
+        values: [req.params.imageIndex, req.params.postID]
+    })
+    client.release()
+    try {
+        let base64 = result.rows[0].image.split(',').pop()
+        res.send(Buffer.from(base64, 'base64'))
+    } catch (e) {
+        res.status(404).sendFile(__dirname + '/static/warn.jpg')
+    }
+})
+
 app.get('/api/schoolsharing/note/:id', async (req, res) => {
     const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
     if (!logged) {
@@ -313,27 +329,33 @@ app.get('/api/schoolsharing/note/:id', async (req, res) => {
 
     let client = await pool.connect()
     let note = await client.query({
-        text: 'SELECT * FROM notes WHERE id = $1',
+        text: 'SELECT id, firstname || \' \' || lastname AS author, title, description, postingdate, data AS images FROM notes JOIN users ON "user" = users.username WHERE id = $1',
         values: [req.params.id]
     })
     client.release()
     res.send(note.rows[0])
 })
 
-app.route('/api/schoolsharing/notes/:section/:class/:subject')
+app.route('/api/schoolsharing/notes/:section/:class/:subject/:page*?')
     .get(async (req, res) => {
+        // TODO: limit posts with pages
         const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
         if (!logged) {
             res.send({ success: false, error: 'invalid credentials' })
             return
         }
-        console.log(req.params.section, req.params.class, req.params.subject)
         let client = await pool.connect()
         let notes = await client.query({
-            text: 'SELECT id, data AS images, firstname || \' \' || lastname AS author, title, description, postingdate FROM notes JOIN users ON "user" = users.username WHERE section = $1 AND notes.class = $2 AND subject = $3',
-            values: [req.params.section, req.params.class, req.params.subject]
+            text: 'SELECT id, array_length(data, 1) AS images, firstname || \' \' || lastname AS author, title, description, postingdate FROM notes JOIN users ON "user" = users.username WHERE section = $1 AND notes.class = $2 AND subject = $3 ORDER BY postingdate LIMIT 10 OFFSET $4',
+            values: [req.params.section, req.params.class, req.params.subject, (parseInt(req.params.page ?? 0)) * 10]
         })
         client.release()
+
+        for (let row of notes.rows) {
+            let imgCount = row.images
+            row.images = []
+            for (let i = 1; i <= imgCount; i++) row.images.push(`/api/schoolsharing/note/${row.id}/${i}.jpg`)
+        }
         res.send(notes.rows)
     })
     .post(async (req, res) => {
