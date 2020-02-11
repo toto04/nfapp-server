@@ -8,10 +8,12 @@ let expo = new Expo()
 let api = Router()
 api.use(express.json({ limit: '10mb' }))
 
+import user from './user'
 import posts from './posts'
 import surveys from './surveys'
 import events from './events'
 import ss from './schoolsharing'
+api.use('/user', user)
 api.use('/posts', posts)
 api.use('/surveys', surveys)
 api.use('/events', events)
@@ -89,7 +91,8 @@ api.post('/login', aw(async (req) => {
                 password: req.body.pwd,
                 classname: result.rows[0].class,
                 firstName: result.rows[0].firstname,
-                lastName: result.rows[0].lastname
+                lastName: result.rows[0].lastname,
+                profilepic: result.rows[0].profilepic
             }
         }
     } else return { success: false, error: 'Invalid credentials' }
@@ -110,24 +113,6 @@ api.post('/signup', aw(async (req) => {
         return { success: false, error: e.detail }
     } finally {
         client.release()
-    }
-}))
-
-api.get('/user/:username', aw(async (req) => {
-    let client = await pool.connect()
-    let result = await client.query({
-        text: 'SELECT firstname, lastname, class, role FROM users WHERE username=$1',
-        values: [req.params.username]
-    })
-    client.release()
-    return {
-        success: true,
-        data: {
-            firstName: result.rows[0].firstname,
-            lastName: result.rows[0].lastname,
-            classname: result.rows[0].class,
-            role: result.rows[0].role
-        }
     }
 }))
 
