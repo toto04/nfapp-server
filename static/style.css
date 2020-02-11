@@ -43,7 +43,11 @@ form {
     text-shadow: #1e1b20 0px 0px 10px;
     text-align: center;
 }
-input[type=text], textarea {
+#g-recaptcha {
+    margin-left: auto;
+    margin-right: auto;
+}
+input[type=text], textarea, input[type=password] {
     width: 95%;
     margin-left: auto;
     margin-right: auto;

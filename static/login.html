@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script async defer>
+        var onloadCallback = () => {
+            // alert('chaio')
+            grecaptcha.render('g-recaptcha', {
+                "theme": "dark",
+                'sitekey': '6LdZ8NcUAAAAABZS4qOvHdFvnSK3Ls6lfc3Ie5Qg'
+            });
+        };
+    </script>
+    <script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit" async defer></script>
+
+    <link rel="stylesheet" href="style.css">
+    <title>Login</title>
+</head>
+
+<body>
+    <div id="title">
+        <h1>(pera) Area Personale</h1>
+    </div>
+    <div id="content">
+        <div id="margined">
+            <div class="scelte" id="psw">
+                <div>
+                    <div class="formheader">
+                        <h3>Inserisci la password</h3>
+                    </div>
+                    <form action="" style="display: block;">
+                        <label for="password">Qui:</label><br>
+                        <input type="password" required name="password" id="">
+                        <br>
+                        <div id="g-recaptcha" ></div>
+                        <br><input type="submit" value="entra">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
+
+<!--
+    Chiave del sito = 6LdZ8NcUAAAAABZS4qOvHdFvnSK3Ls6lfc3Ie5Qg
+    Chiave segreta = 6LdZ8NcUAAAAAIO93reEa8NQN5BaGKQzWctDjFbm
+-->
