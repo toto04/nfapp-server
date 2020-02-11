@@ -68,8 +68,8 @@
     </div>
 
     <script>
-        Array.from(document.querySelectorAll('.scelte')).forEach(function (e) {
-            e.addEventListener('click', () => {
+        Array.from(document.querySelectorAll('.scelte')).forEach(e => {
+            e.children[0].children[0].addEventListener('click', () => {
                 $('#' + e.id + ' form').slideToggle()
             })
         })

@@ -1,10 +1,12 @@
 import express, { NextFunction } from 'express'
+import path from 'path'
 import api from './api'
 require('dotenv').config()
 
 const app = express()
 
 app.use('/api', api)
+app.use(express.static(path.join(__dirname + '../../static')))
 
 app.post('/error/:message', (req, res) => {
     throw new Error(req.params.message)
