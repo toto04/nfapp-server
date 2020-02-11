@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <title>Area Personale</title>
+</head>
+
+<body>
+    <div id="title">
+        <h1>(pera) Area Personale</h1>
+    </div>
+    <div id="content">
+        <div id="margined">
+
+            <div class="scelte" id="article">
+                <div>
+                    <div class="formheader">
+                        <h3>Pubblica un post</h3>
+                    </div>
+                    <form action="">
+                        <label for="titolo">Titolo:</label><br>
+                        <input type="text" name="titolo" placeholder="Titolo"><br>
+                        <label for="testo">Corpo del post:</label><br>
+                        <textarea type="text" name="testo" placeholder="Corpo"></textarea><br>
+                        <label for="immagine">Invia una immagine per il post:</label><br>
+                        <input type="file" name="immagine"><br>
+                        <label for="autore">Autore del post:</label><br>
+                        <input type="text" name="autore" placeholder="Autore"><br>
+                        <input type="submit" value="Inserisci" name="newPost">
+                    </form>
+                </div>
+            </div>
+
+            <div class="scelte" id="evento">
+                <div>
+                    <div class="formheader">
+                        <h3>Aggiungi un evento</h3>
+                    </div>
+                    <form action="">
+                        <label for="titolo">Titolo:</label><br>
+                        <input type="text" name="titolo" placeholder="Titolo"><br>
+                        <label for="descrizione">Inserisci una descrizione (opzionale)</label><br>
+                        <textarea type="text" name="descrizione" placeholder="Descrizione"></textarea><br>
+                        <label for="data">Quando:</label><br>
+                        <input type="date" name="data"><br>
+                        <input type="submit" value="Inserisci" name="newEvent">
+                    </form>
+                </div>
+            </div>
+
+            <div class="scelte" id="sondaggio">
+                <div>
+                    <div class="formheader">
+                        <h3>Crea un sondaggio</h3>
+                    </div>
+                    <form action="">
+                        <label for="titolo">Titolo:</label><br>
+                        <input type="text" name="titolo" placeholder="Titolo"><br> //Totoculo
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        Array.from(document.querySelectorAll('.scelte')).forEach(function (e) {
+            e.addEventListener('click', () => {
+                $('#' + e.id + ' form').slideToggle()
+            })
+        })
+    </script>
+
+</body>
+
+</html>

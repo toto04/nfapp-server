@@ -1,0 +1,84 @@
+html,
+body {
+    background-color: #1e1b20;
+    margin: 0;
+    font-family: Segoe, Segoe UI, DejaVu Sans, Trebuchet MS, Verdana, " sans-serif";
+	font-family: Lucida Grande, Lucida Sans Unicode, Lucida Sans, DejaVu Sans, Verdana, " sans-serif";
+}
+
+#title,
+#content {
+    width: 96vw;
+    margin-left: 2vw;
+    background-color: rgba(255, 255, 255, .75);
+}
+#margined {
+    margin: 0 1.5vh;
+    padding: 0.1vh 0;
+}
+h1{
+    padding: 1.5vh 0;
+}
+.scelte {
+    background-color: rgba(255, 255, 255, .75);
+
+}
+.scelte:last-of-type {
+    margin-bottom: 20px;
+}
+.formheader {
+    background-color: #ff9000;
+}
+h3 {
+    padding: 15px 15px;
+}
+form {
+    padding: 0 10px;
+    padding-bottom: 15px;
+}
+#title {
+    color: #ff9000;
+    font-size: 2.5vh;
+    font-variant: small-caps;
+    text-shadow: #1e1b20 0px 0px 10px;
+    text-align: center;
+}
+input[type=text], textarea {
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+    align-items: center;
+    padding: 5px;
+    margin-bottom: 15px;
+}
+input[type=submit] {
+    width: 40%;
+    margin-left: 30%;
+    padding: 5px;
+    background-color: #ff9000;
+    color: #fff;
+    border: 0;
+    font-size: 2.8vh;
+    font-weight: bold;
+    font-variant: small-caps;
+    box-shadow: #1e1b20 5px 5px 10px;
+    transition: all .2s ease;
+    height: 45px;
+    border-radius: 25px;
+}
+input[type=submit]:active, input[type=submit]:hover {
+    background-color: #b86800;
+    box-shadow: #1e1b20 2px 2px 2px;
+}
+textarea {
+    height: 100px;
+}
+input[type=date], input[type=file] {
+    margin-bottom: 15px;
+}
+.formheader {
+    cursor: pointer;
+}
+.scelte form {
+    display: none;
+}
