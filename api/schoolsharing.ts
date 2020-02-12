@@ -34,7 +34,6 @@ ss.get('/note/:id', aw(async (req) => {
 
 ss.route('/notes/:section/:class/:subject/:page*?')
     .get(aw(async (req) => {
-        // TODO: limit posts with pages
         const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
         if (!logged) return { success: false, error: 'invalid credentials' }
 
@@ -70,6 +69,25 @@ ss.route('/notes/:section/:class/:subject/:page*?')
         }
     }))
 
+ss.get('/notes/:user', aw(async (req) => {
+    const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
+    if (!logged) return { success: false, error: 'invalid credentials' }
+
+    let client = await pool.connect()
+    let notes = await client.query({
+        text: 'SELECT id, array_length(data, 1) AS images, firstname || \' \' || lastname AS author, title, description, postingdate, section, notes.class, subject  FROM notes JOIN users ON "user" = users.username WHERE "user" = $1 ORDER BY postingdate',
+        values: [req.header('x-nfapp-username')]
+    })
+    client.release()
+
+    for (let row of notes.rows) {
+        let imgCount = row.images
+        row.images = []
+        for (let i = 1; i <= imgCount; i++) row.images.push(`/api/schoolsharing/note/${row.id}/${i}.jpg`)
+    }
+    console.log(notes.rows)
+    return { success: true, data: notes.rows }
+}))
 
 
 export default ss
