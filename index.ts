@@ -6,7 +6,9 @@ require('dotenv').config()
 const app = express()
 
 app.use('/api', api)
-app.use(express.static(path.join(__dirname + '../../static')))
+app.use(express.static(path.join(__dirname + '../../static'), {
+    extensions: ['html']
+}))
 
 app.post('/error/:message', (req, res) => {
     throw new Error(req.params.message)
