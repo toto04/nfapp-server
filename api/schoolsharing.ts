@@ -47,7 +47,6 @@ ss.get('/note/:id', aw(async (req) => {
         values: [req.header('x-nfapp-username'), req.params.id]
     })
     client.release()
-    console.log(Object.keys(note.rows[0]).map(k => [k, typeof k]))
     return { success: true, data: note.rows[0] }
 }))
 
@@ -139,7 +138,6 @@ ss.get('/notes/:user', aw(async (req) => {
         row.images = []
         for (let i = 1; i <= imgCount; i++) row.images.push(`/api/schoolsharing/note/${row.id}/${i}.jpg`)
     }
-    console.log(notes.rows)
     return { success: true, data: notes.rows }
 }))
 

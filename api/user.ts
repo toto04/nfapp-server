@@ -35,5 +35,16 @@ user.post('/profilepic', aw(async (req) => {
     return { success: true }
 }))
 
+user.post('/removeProfilepic', aw(async (req) => {
+    const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
+    if (!logged) return { success: false, error: 'invalid credentials' }
+    let client = await pool.connect()
+    await client.query({
+        text: 'UPDATE users SET profilepic=NULL WHERE username=$1',
+        values: [req.header('x-nfapp-username')]
+    })
+    client.release()
+    return { success: true }
+}))
 
 export default user
