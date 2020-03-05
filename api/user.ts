@@ -47,4 +47,30 @@ user.post('/removeProfilepic', aw(async (req) => {
     return { success: true }
 }))
 
+user.post('/changeName', aw(async req => {
+    const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
+    if (!logged) return { success: false, error: 'invalid credentials' }
+    if (!req.body.firstname || !req.body.lastname) return { success: false, error: 'both firstname and lastname must be provided' }
+    let client = await pool.connect()
+    await client.query({
+        text: 'UPDATE users SET firstname=$2, lastname=$3 WHERE username=$1',
+        values: [req.header('x-nfapp-username'), req.body.firstname, req.body.lastname]
+    })
+    client.release()
+    return { success: true }
+}))
+
+user.post('/changeClass', aw(async req => {
+    const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
+    if (!logged) return { success: false, error: 'invalid credentials' }
+    if (!req.body.classname) return { success: false, error: 'classname must be provided' }
+    let client = await pool.connect()
+    await client.query({
+        text: 'UPDATE users SET class=$2 WHERE username=$1',
+        values: [req.header('x-nfapp-username'), req.body.classname]
+    })
+    client.release()
+    return { success: true }
+}))
+
 export default user
