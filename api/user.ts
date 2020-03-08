@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { Router } from 'express'
 import { aw, pool, login } from './util'
 
@@ -68,6 +69,34 @@ user.post('/changeClass', aw(async req => {
     await client.query({
         text: 'UPDATE users SET class=$2 WHERE username=$1',
         values: [req.header('x-nfapp-username'), req.body.classname]
+    })
+    client.release()
+    return { success: true }
+}))
+
+user.post('/changePassword', aw(async req => {
+    const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
+    if (!logged) return { success: false, error: 'invalid credentials' }
+    if (!req.body.newPassword) return { success: false, error: 'a newPassword must be provided' }
+    let hash = crypto.createHash('sha256')
+    hash.update(req.body.newPassword)
+    let client = await pool.connect()
+    await client.query({
+        text: 'UPDATE users SET password=$2 WHERE username=$1',
+        values: [req.header('x-nfapp-username'), hash.digest('hex')]
+    })
+    client.release()
+    return { success: true }
+}))
+
+user.post('/changeEmail', aw(async req => {
+    const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
+    if (!logged) return { success: false, error: 'invalid credentials' }
+    if (!req.body.newEmail) return { success: false, error: 'a newEmail must be provided' }
+    let client = await pool.connect()
+    await client.query({
+        text: 'UPDATE users SET email=$2 WHERE username=$1',
+        values: [req.header('x-nfapp-username'), req.body.newEmail]
     })
     client.release()
     return { success: true }
