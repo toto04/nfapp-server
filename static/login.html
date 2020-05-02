@@ -7,36 +7,63 @@
     <link rel="shortcut icon" href="images/favicon.ico">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script async defer>
+        let recaptchaToken = ''
         var onloadCallback = () => {
-            // alert('chaio')
-            grecaptcha.render('g-recaptcha', {
+            let widget = grecaptcha.render('g-recaptcha', {
                 "theme": "dark",
+                'callback': (res) => {
+                    recaptchaToken = res
+                },
                 'sitekey': '6LdZ8NcUAAAAABZS4qOvHdFvnSK3Ls6lfc3Ie5Qg'
             });
+
+            document.querySelector('#form').addEventListener('submit', e => {
+                e.preventDefault()
+                fetch('/api/privatearea/login', {
+                    headers: {
+                        'Content-type': 'application/json'
+                    },
+                    method: 'post',
+                    body: JSON.stringify({
+                        recaptchaToken,
+                        password: document.querySelector('#password').value
+                    })
+                }).then(async r => {
+                    let res = await r.json()
+                    if (res.success) {
+                        window.location.href = window.location.origin + '/private'
+                    } else {
+                        let e = document.querySelector('#error')
+                        e.innerHTML = '<p>' + res.error + '</p>'
+                        e.style.display = 'block'
+                        grecaptcha.reset(widget)
+                    }
+                })
+            })
         };
     </script>
     <script src="https://www.google.com/recaptcha/api.js?onload=onloadCallback&render=explicit" async defer></script>
-
     <link rel="stylesheet" href="style.css">
     <title>Login</title>
 </head>
 
 <body>
     <div id="title">
-        <h1>(pera) Area Personale</h1>
+        <h1>🍐 Area Personale</h1>
     </div>
     <div id="content">
         <div id="margined">
             <div class="scelte" id="psw">
+                <div id="error" style="display: none;" ></div>
                 <div>
                     <div class="formheader">
                         <h3>Inserisci la password</h3>
                     </div>
-                    <form action="" style="display: block;">
+                    <form id="form" style="display: block;">
                         <label for="password">Qui:</label><br>
-                        <input type="password" required name="password" id="">
+                        <input type="password" required name="password" id="password">
                         <br>
-                        <div id="g-recaptcha" ></div>
+                        <div id="g-recaptcha"></div>
                         <br><input type="submit" value="entra">
                     </form>
                 </div>
@@ -46,8 +73,3 @@
 </body>
 
 </html>
-
-<!--
-    Chiave del sito = 6LdZ8NcUAAAAABZS4qOvHdFvnSK3Ls6lfc3Ie5Qg
-    Chiave segreta = 6LdZ8NcUAAAAAIO93reEa8NQN5BaGKQzWctDjFbm
--->

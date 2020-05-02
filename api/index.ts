@@ -13,11 +13,13 @@ import posts from './posts'
 import surveys from './surveys'
 import events from './events'
 import ss from './schoolsharing'
+import privatearea from './privatearea'
 api.use('/user', user)
 api.use('/posts', posts)
 api.use('/surveys', surveys)
 api.use('/events', events)
 api.use('/schoolsharing', ss)
+api.use('/privatearea', privatearea)
 
 api.post('/registertoken', aw(async (req) => {
     if (!Expo.isExpoPushToken(req.body.token)) return { success: false, error: 'invalid token' }

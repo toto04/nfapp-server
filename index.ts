@@ -1,10 +1,13 @@
 import express, { NextFunction } from 'express'
+import helmet from 'helmet'
 import path from 'path'
 import api from './api'
 require('dotenv').config()
 
 const app = express()
 
+app.use(helmet())
+app.set('trust proxy', 1)
 app.use('/api', api)
 app.use(express.static(path.join(__dirname + '../../static'), {
     extensions: ['html']

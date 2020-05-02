@@ -8,6 +8,30 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <title>Area Personale</title>
+    <script defer>
+        // checks for session and redirects to the login page if not logged in
+        fetch('/api/privatearea/check').then(async r => {
+            let res = await r.json()
+            if (!res.success) window.location.href = window.location.origin + '/login'
+        })
+
+        window.addEventListener('load', () => {
+            let input = document.querySelector('#postImage')
+            input.addEventListener('change', () => {
+                let preview = document.querySelector('img')
+                let file = input.files[0]
+                let fr = new FileReader()
+
+                fr.addEventListener('load', () => {
+                    let { result } = fr
+                    console.log(result)
+                    preview.src = result
+                })
+                if (file) fr.readAsDataURL(file)
+            })
+        })
+
+    </script>
 </head>
 
 <body>
@@ -22,16 +46,15 @@
                     <div class="formheader">
                         <h3>Pubblica un post</h3>
                     </div>
-                    <form action="">
+                    <form action="" id="postForm">
                         <label for="titolo">Titolo:</label><br>
-                        <input type="text" name="titolo" placeholder="Titolo"><br>
+                        <input type="text" id="postTitle" placeholder="Titolo" required><br>
                         <label for="testo">Corpo del post:</label><br>
-                        <textarea type="text" name="testo" placeholder="Corpo"></textarea><br>
+                        <textarea type="text" id="postDescription" placeholder="Corpo"></textarea><br>
                         <label for="immagine">Invia una immagine per il post:</label><br>
-                        <input type="file" name="immagine"><br>
-                        <label for="autore">Autore del post:</label><br>
-                        <input type="text" name="autore" placeholder="Autore"><br>
-                        <input type="submit" value="Inserisci" name="newPost">
+                        <input type="file" id="postImage"><br>
+                        <img src="" height="300" alt="preview immagine">
+                        <input type="submit" value="pubblica" name="newPost">
                     </form>
                 </div>
             </div>
@@ -41,14 +64,14 @@
                     <div class="formheader">
                         <h3>Aggiungi un evento</h3>
                     </div>
-                    <form action="">
+                    <form action="" id="eventForm">
                         <label for="titolo">Titolo:</label><br>
-                        <input type="text" name="titolo" placeholder="Titolo"><br>
+                        <input type="text" id="eventTitle" placeholder="Titolo" required><br>
                         <label for="descrizione">Inserisci una descrizione (opzionale)</label><br>
-                        <textarea type="text" name="descrizione" placeholder="Descrizione"></textarea><br>
+                        <textarea type="text" id="eventDescription" placeholder="Descrizione"></textarea><br>
                         <label for="data">Quando:</label><br>
-                        <input type="date" name="data"><br>
-                        <input type="submit" value="Inserisci" name="newEvent">
+                        <input type="date" id="eventDate" required><br>
+                        <input type="submit" value="Crea evento" name="newEvent">
                     </form>
                 </div>
             </div>
