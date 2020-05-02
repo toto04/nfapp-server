@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="images/favicon.ico">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/it.js"></script>
     <link rel="stylesheet" href="style.css">
     <title>Area Personale</title>
     <script defer>
@@ -16,7 +19,15 @@
         })
 
         window.addEventListener('load', () => {
+            flatpickr('.date', {
+                defaultDate: new Date(new Date().setMinutes(60)).toISOString(),
+                locale: 'it',
+                enableTime: true,
+                inline: true
+            })
+
             let input = document.querySelector('#postImage')
+            let image = ''
             input.addEventListener('change', () => {
                 let preview = document.querySelector('img')
                 let file = input.files[0]
@@ -24,10 +35,56 @@
 
                 fr.addEventListener('load', () => {
                     let { result } = fr
-                    console.log(result)
+                    image = result
                     preview.src = result
                 })
                 if (file) fr.readAsDataURL(file)
+            })
+
+            document.querySelector('#postForm').addEventListener('submit', e => {
+                e.preventDefault()
+                fetch('/api/privatearea/post', {
+                    headers: {
+                        'Content-type': 'application/json'
+                    },
+                    method: 'post',
+                    body: JSON.stringify({
+                        title: document.querySelector('#postTitle').value,
+                        author: document.querySelector('#postAuthor').value,
+                        description: document.querySelector('#postDescription').value || undefined,
+                        image: image || undefined
+                    })
+                }).then(async r => {
+                    let res = await r.json()
+                    let div = document.querySelector('#error')
+                    div.style.display = 'block'
+                    div.innerHTML = res.success ? 'Il post è stato pubblicato!' : 'Errore:' + res.error
+                    window.scrollTo({ top: 0, behavior: "smooth" })
+                })
+            })
+
+            document.querySelector('#eventForm').addEventListener('submit', e => {
+                e.preventDefault()
+                // console.log();
+
+                fetch('/api/privatearea/event', {
+                    headers: {
+                        'Content-type': 'application/json'
+                    },
+                    method: 'post',
+                    body: JSON.stringify({
+                        title: document.querySelector('#eventTitle').value,
+                        description: document.querySelector('#eventDescription').value || undefined,
+                        start: document.querySelector('#eventStart').value,
+                        end: document.querySelector('#eventEnd').value
+                    })
+                }).then(async r => {
+                    let res = await r.json()
+                    let div = document.querySelector('#error')
+                    div.style.display = 'block'
+                    div.innerHTML = res.success ? 'L\'evento è stato creato!' : 'Errore:' + res.error
+                    window.scrollTo({ top: 0, behavior: "smooth" })
+                })
             })
         })
 
@@ -40,20 +97,26 @@
     </div>
     <div id="content">
         <div id="margined">
-
+            <div id="error" style="display: none; background: white; font-size: 20px; font-weight: bold; padding: 10px; text-align: center; margin-top: 15px;"></div>
             <div class="scelte" id="article">
                 <div>
                     <div class="formheader">
                         <h3>Pubblica un post</h3>
                     </div>
                     <form action="" id="postForm">
-                        <label for="titolo">Titolo:</label><br>
+                        <label for="postTitle">Titolo:</label><br>
                         <input type="text" id="postTitle" placeholder="Titolo" required><br>
-                        <label for="testo">Corpo del post:</label><br>
+                        <label for="postAuthor">Autore:</label>
+                        <select id="postAuthor" required>
+                            <option value="_ambrowk">Filippo Ambrosini</option>
+                            <option value="orio">Lorenzo Orio</option>
+                            <option value="tommaso.morganti">Tommaso Morganti</option>
+                        </select>
+                        <label for="postDescription">Corpo del post:</label><br>
                         <textarea type="text" id="postDescription" placeholder="Corpo"></textarea><br>
-                        <label for="immagine">Invia una immagine per il post:</label><br>
+                        <label for="postImage">Invia una immagine per il post:</label><br>
                         <input type="file" id="postImage"><br>
-                        <img src="" height="300" alt="preview immagine">
+                        <img src="" height="300" style="display: block;" alt="anteprima immagine">
                         <input type="submit" value="pubblica" name="newPost">
                     </form>
                 </div>
@@ -69,13 +132,20 @@
                         <input type="text" id="eventTitle" placeholder="Titolo" required><br>
                         <label for="descrizione">Inserisci una descrizione (opzionale)</label><br>
                         <textarea type="text" id="eventDescription" placeholder="Descrizione"></textarea><br>
-                        <label for="data">Quando:</label><br>
-                        <input type="date" id="eventDate" required><br>
+                        <div style="display: flex; width: 95%; justify-content: space-evenly;">
+                            <div>
+                                <label for="eventStart">Inizio:</label><br>
+                                <input type="text" class="date" id="eventStart" required><br>
+                            </div>
+                            <div>
+                                <label for="eventEnd">Fine:</label><br>
+                                <input type="text" class="date" id="eventEnd" required><br>
+                            </div>
+                        </div>
                         <input type="submit" value="Crea evento" name="newEvent">
                     </form>
                 </div>
             </div>
-
             <!--<div class="scelte" id="sondaggio">
                 <div>
                     <div class="formheader">
@@ -89,7 +159,6 @@
             </div>-->
         </div>
     </div>
-
     <script>
         Array.from(document.querySelectorAll('.scelte')).forEach(e => {
             e.children[0].children[0].addEventListener('click', () => {
@@ -97,7 +166,6 @@
             })
         })
     </script>
-
 </body>
 
 </html>

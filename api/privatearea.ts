@@ -39,12 +39,40 @@ privatearea.post('/login', aw(async req => {
 }))
 
 privatearea.post('/post', aw(async req => {
-    if (!req.session?.logged) return { success: false, error: 'invalid session, please log in' }
-    return { success: false }
+    if (!req.session?.logged) return { success: false, error: 'invalid session, please log in (ricarica la pagina)' }
+    if (!req.body.title) return { success: false, error: 'post title must be provided' }
+    if (!req.body.author) return { success: false, error: 'post author must be provided' }
+    let client = await pool.connect()
+    try {
+        await client.query({
+            text: 'INSERT INTO posts (title, author, body, image) VALUES ($1, $2, $3, $4)',
+            values: [req.body.title, req.body.author, req.body.description, req.body.image]
+        })
+        return { success: true }
+    } catch (e) {
+        return { success: false, error: e.message }
+    } finally {
+        client.release()
+    }
 }))
 
 privatearea.post('/event', aw(async req => {
-    return { success: false }
+    if (!req.session?.logged) return { success: false, error: 'invalid session, please log in (ricarica la pagina)' }
+    if (!req.body.title) return { success: false, error: 'post title must be provided' }
+    if (!req.body.start) return { success: false, error: 'post start datetime must be provided' }
+    if (!req.body.end) return { success: false, error: 'post end datetime must be provided' }
+    let client = await pool.connect()
+    try {
+        await client.query({
+            text: 'INSERT INTO events ("start", "end", "title", "body") VALUES ($1, $2, $3, $4)',
+            values: [req.body.start, req.body.end, req.body.title, req.body.description]
+        })
+        return { success: true }
+    } catch (e) {
+        return { success: false, error: e.message }
+    } finally {
+        client.release()
+    }
 }))
 
 export default privatearea

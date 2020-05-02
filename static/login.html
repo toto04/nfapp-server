@@ -7,6 +7,11 @@
     <link rel="shortcut icon" href="images/favicon.ico">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script async defer>
+        fetch('/api/privatearea/check').then(async r => {
+            let res = await r.json()
+            if (res.success) window.location.href = window.location.origin + '/private'
+        })
+
         let recaptchaToken = ''
         var onloadCallback = () => {
             let widget = grecaptcha.render('g-recaptcha', {
@@ -54,7 +59,7 @@
     <div id="content">
         <div id="margined">
             <div class="scelte" id="psw">
-                <div id="error" style="display: none;" ></div>
+                <div id="error" style="display: none;"></div>
                 <div>
                     <div class="formheader">
                         <h3>Inserisci la password</h3>
