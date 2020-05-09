@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import Expo from 'expo-server-sdk'
 import { Router } from 'express'
 import { aw, pool, login } from './util'
 
@@ -97,6 +98,46 @@ user.post('/changeEmail', aw(async req => {
     await client.query({
         text: 'UPDATE users SET email=$2 WHERE username=$1',
         values: [req.header('x-nfapp-username'), req.body.newEmail]
+    })
+    client.release()
+    return { success: true }
+}))
+
+user.post('/delete', aw(async req => {
+    const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
+    if (!logged) return { success: false, error: 'invalid credentials' }
+    let client = await pool.connect()
+    await client.query({
+        text: 'DELETE FROM users WHERE username=$1',
+        values: [req.header('x-nfapp-username')]
+    })
+    return { success: true, data: 'Account eliminato con successo' }
+}))
+
+user.post('/registertoken', aw(async (req) => {
+    const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
+    if (!logged) return { success: false, error: 'invalid credentials' }
+    if (!Expo.isExpoPushToken(req.body.token)) return { success: false, error: 'invalid token' }
+    let client = await pool.connect()
+    await client.query({
+        text: 'INSERT INTO "notificationTokens" (username, token) VALUES ($1, $2) ON CONFLICT (username) DO UPDATE SET lastupdated = CURRENT_TIMESTAMP, token=$2',
+        values: [req.header('x-nfapp-username'), req.body.token]
+    })
+    client.release()
+    return { success: true }
+}))
+
+user.post('/unregistertoken', aw(async (req) => {
+    const logged = await login(req.body.username, req.body.password)
+    if (!logged) return { success: false, error: 'invalid credentials' }
+    let client = await pool.connect()
+    await client.query({
+        text: 'DELETE FROM "notificationTokens" WHERE username=$1',
+        values: [req.body.username]
+    })
+    await client.query({
+        // TODO: move this to the new send notifications
+        text: 'DELETE FROM "notivicationTokens" WHERE CURRENT_TIMESTAMP - lastupdated > INTERVAL \'1 week\''
     })
     client.release()
     return { success: true }

@@ -21,20 +21,20 @@ api.use('/events', events)
 api.use('/schoolsharing', ss)
 api.use('/privatearea', privatearea)
 
-api.post('/registertoken', aw(async (req) => {
-    if (!Expo.isExpoPushToken(req.body.token)) return { success: false, error: 'invalid token' }
-    let client = await pool.connect()
-    await client.query({
-        text: 'INSERT INTO notificationtokens VALUES ($1) ON CONFLICT (token) DO UPDATE SET lastupdated = CURRENT_TIMESTAMP',
-        values: [req.body.token]
-    })
-    if (await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))) client.query({
-        text: 'UPDATE notificationtokens SET "user" = $1 WHERE token = $2',
-        values: [req.header('x-nfapp-username'), req.body.token]
-    })
-    client.release()
-    return { success: true }
-}))
+// api.post('/registertoken', aw(async (req) => {
+//     if (!Expo.isExpoPushToken(req.body.token)) return { success: false, error: 'invalid token' }
+//     let client = await pool.connect()
+//     await client.query({
+//         text: 'INSERT INTO notificationtokens VALUES ($1) ON CONFLICT (token) DO UPDATE SET lastupdated = CURRENT_TIMESTAMP',
+//         values: [req.body.token]
+//     })
+//     if (await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))) client.query({
+//         text: 'UPDATE notificationtokens SET "user" = $1 WHERE token = $2',
+//         values: [req.header('x-nfapp-username'), req.body.token]
+//     })
+//     client.release()
+//     return { success: true }
+// }))
 
 api.post('/notification', aw(async (req) => {
     //TODO: admin verification
