@@ -24,6 +24,19 @@ user.get('/info/:username', aw(async (req) => {
     }
 }))
 
+user.post('/report', aw(async req => {
+    const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
+    if (!logged) return { success: false, error: 'invalid credentials' }
+    if (!req.body.report) return { success: false, error: 'a report must be provided' }
+    let client = await pool.connect()
+    await client.query({
+        text: 'INSERT INTO reports ("user", report) VALUES ($1, $2)',
+        values: [req.header('x-nfapp-username'), req.body.report]
+    })
+    client.release()
+    return { success: true }
+}))
+
 user.post('/profilepic', aw(async (req) => {
     const logged = await login(req.header('x-nfapp-username'), req.header('x-nfapp-password'))
     if (!logged) return { success: false, error: 'invalid credentials' }
