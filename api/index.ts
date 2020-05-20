@@ -1,6 +1,7 @@
 import express, { Router } from 'express'
 import crypto from 'crypto'
 import { pool, login, aw } from './util'
+export { pool } from './util'
 import Expo from 'expo-server-sdk'
 import { QueryConfig } from 'pg'
 let expo = new Expo()
@@ -36,44 +37,44 @@ api.use('/privatearea', privatearea)
 //     return { success: true }
 // }))
 
-api.post('/notification', aw(async (req) => {
-    //TODO: admin verification
-    if (!req.body.title) return { success: false, error: 'a title must be provided' }
+// api.post('/notification', aw(async (req) => {
+//     //TODO: admin verification
+//     if (!req.body.title) return { success: false, error: 'a title must be provided' }
 
-    let data: { type: string, postID?: number }
-    switch (req.body.type) {
-        case 'newPost':
-            if (!req.body.postID) return { success: false, error: 'a postID must be provided for type "newPost"' }
-            data = { type: 'newPost', postID: req.body.postID }
-            break
-        default:
-            data = { type: req.body.type }
-    }
+//     let data: { type: string, postID?: number }
+//     switch (req.body.type) {
+//         case 'newPost':
+//             if (!req.body.postID) return { success: false, error: 'a postID must be provided for type "newPost"' }
+//             data = { type: 'newPost', postID: req.body.postID }
+//             break
+//         default:
+//             data = { type: req.body.type }
+//     }
 
-    let client = await pool.connect()
-    let tokens = await client.query({
-        text: 'SELECT token FROM notificationtokens WHERE CURRENT_TIMESTAMP - lastupdated < interval \'30 days\'' + ((data.type == 'newSurvey') ? ' AND "user" IS NOT NULL' : '')
-    })
-    let chunks = expo.chunkPushNotifications(tokens.rows.map(({ token }) => ({
-        to: token,
-        sound: 'default',
-        data,
-        title: req.body.title,
-        body: req.body.body
-    })))
-    let tickets = []
-    for (let chunk of chunks) {
-        try {
-            tickets.push(...await expo.sendPushNotificationsAsync(chunk))
-        } catch (e) { console.error(e) }
-    }
-    await client.query({
-        text: 'INSERT INTO tickets VALUES ($1)',
-        values: [JSON.stringify(tickets)]
-    })
-    client.release()
-    return { success: true }
-}))
+//     let client = await pool.connect()
+//     let tokens = await client.query({
+//         text: 'SELECT token FROM notificationtokens WHERE CURRENT_TIMESTAMP - lastupdated < interval \'30 days\'' + ((data.type == 'newSurvey') ? ' AND "user" IS NOT NULL' : '')
+//     })
+//     let chunks = expo.chunkPushNotifications(tokens.rows.map(({ token }) => ({
+//         to: token,
+//         sound: 'default',
+//         data,
+//         title: req.body.title,
+//         body: req.body.body
+//     })))
+//     let tickets = []
+//     for (let chunk of chunks) {
+//         try {
+//             tickets.push(...await expo.sendPushNotificationsAsync(chunk))
+//         } catch (e) { console.error(e) }
+//     }
+//     await client.query({
+//         text: 'INSERT INTO tickets VALUES ($1)',
+//         values: [JSON.stringify(tickets)]
+//     })
+//     client.release()
+//     return { success: true }
+// }))
 
 /* USER ENDPOINTS */
 

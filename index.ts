@@ -1,7 +1,7 @@
 import express, { NextFunction } from 'express'
 import helmet from 'helmet'
 import path from 'path'
-import api from './api'
+import api, { pool } from './api'
 require('dotenv').config()
 
 const app = express()
@@ -23,14 +23,22 @@ app.use((req, res, next) => {
 })
 
 // Internal server error handler, for when something brakes
+// update as of may 2020, things brake a lot
 app.use((err: Error, req: express.Request, res: express.Response, next: NextFunction) => {
     let body = req.body
     for (const key in body) {
         if (typeof body[key] == "string" && body[key].length > 100) body[key] = body[key].substr(0, 100) + '... [truncated to first 100 characters]'
     }
     let requestInfo = { method: req.method, ip: req.ip, url: req.originalUrl, body: req.body, username: req.header('x-nfapp-username') }
+    let errorInfo = { name: err.name, message: err.message, stack: err.stack }
     console.error(`\x1b[31m[ERROR HANDLER] An error occurred at time: ${new Date(Date.now())}\nError:\x1b[0m`, err, `\n\n\x1b[31mRequest: \x1b[0m`, requestInfo)
-    res.status(500).send({ success: false, error: '500, internal server error', details: { error: { name: err.name, message: err.message, stack: err.stack }, request: requestInfo } })
+    res.status(500).send({ success: false, error: '500, internal server error', details: { error: errorInfo, request: requestInfo } })
+    pool.connect().then(async client => {
+        await client.query({
+            text: 'INSERT INTO errors (request, stack) VALUES ($1, $2)',
+            values: [requestInfo, errorInfo]
+        })
+    }).catch(e => { }) // error handling done right
 })
 
 app.listen(process.env.PORT || 2001, () => {

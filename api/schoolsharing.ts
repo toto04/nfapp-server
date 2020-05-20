@@ -99,7 +99,7 @@ ss.route('/notes/:section/:class/:subject/:page*?')
             })
             return { success: true }
         } catch (e) {
-            return { success: false }
+            return { success: false, error: e.message }
         } finally {
             client.release()
         }
