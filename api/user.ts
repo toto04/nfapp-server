@@ -150,7 +150,7 @@ user.post('/unregistertoken', aw(async (req) => {
     })
     await client.query({
         // TODO: move this to the new send notifications
-        text: 'DELETE FROM "notivicationTokens" WHERE CURRENT_TIMESTAMP - lastupdated > INTERVAL \'1 week\''
+        text: 'DELETE FROM "notificationTokens" WHERE CURRENT_TIMESTAMP - lastupdated > INTERVAL \'1 week\''
     })
     client.release()
     return { success: true }
