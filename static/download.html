@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download NFApp!</title>
+    <script>
+        window.addEventListener('load', () => {
+            let userAgent = navigator.userAgent || navigator.vendor || window.opera;
+            if (/android/i.test(userAgent)) window.location.href = "https://play.google.com/store/apps/details?id=com.tommasomorganti.nfapp"
+            else if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) window.location.href = "https://apps.apple.com/it/app/nfapp/id1490757317"
+            else window.location.href = window.location.origin
+            setTimeout(5000, () => {
+                window.location.href = window.location.origin
+            })
+        })
+    </script>
+</head>
+
+<body>
+    <p>Ti stiamo reindirizzando, se non succede niente <a href="/">clicca qui</a></p>
+</body>
+
+</html>

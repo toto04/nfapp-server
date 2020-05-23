@@ -7,7 +7,7 @@
     <link rel="shortcut icon" href="images/favicon.ico">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <link rel="stylesheet" href="style.css">
-    <title>Area Personale</title>
+    <title>NFApp - Liceo Nervi Ferrari</title>
 </head>
 
 <body>
@@ -30,7 +30,41 @@
                             color: #dd8000;
                             margin: 15px;
                         }
+
+                        #badgecontainer {
+                            display: flex;
+                            justify-content: space-around;
+                            max-width: 600px;
+                            margin: auto;
+                        }
+
+                        .badge {
+                            display: flex;
+                            text-decoration: none;
+                        }
+
+                        .badge img {
+                            height: 100px;
+                            margin: auto;
+                        }
+
+                        @media screen and (max-width: 500px) {
+                            #badgecontainer {
+                                flex-direction: column;
+                            }
+                        }
                     </style>
+                    <div id="badgecontainer">
+                        <a class="badge" href="https://apps.apple.com/it/app/nfapp/id1490757317">
+                            <img style="padding: 15px; box-sizing: border-box;" src="images/appstore.svg"
+                                alt="Scarica su App Store">
+                        </a>
+                        <a class="badge"
+                            href='https://play.google.com/store/apps/details?id=com.tommasomorganti.nfapp&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'>
+                            <img alt='Disponibile su Google Play'
+                                src='https://play.google.com/intl/en_us/badges/static/images/badges/it_badge_web_generic.png' />
+                        </a>
+                    </div>
                     <a href="/privacy" class="indexOption">Politica sulla Privacy</a>
                     <a href="/login" class="indexOption">Area privata</a>
                     <p style="padding: 10px;">templating di Elia Pontiggia</p>
