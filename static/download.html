@@ -11,7 +11,7 @@
             if (/android/i.test(userAgent)) window.location.href = "https://play.google.com/store/apps/details?id=com.tommasomorganti.nfapp"
             else if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) window.location.href = "https://apps.apple.com/it/app/nfapp/id1490757317"
             else window.location.href = window.location.origin
-            setTimeout(5000, () => {
+            setInterval(3000, () => {
                 window.location.href = window.location.origin
             })
         })
