@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFApp - Recupero password</title>
+
+    <style>
+        html,
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            text-align: center;
+        }
+
+        #token {
+            display: block;
+            padding: 10px;
+            width: 270px;
+            font-size: 1.2em;
+            margin: auto;
+            color: white;
+            background-color: #ff9000;
+            font-weight: bold;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <p>
+        Clicca qui per reimpostare la tua password
+    </p>
+    <a id="token" href="https://nfapp-server.herokuapp.com/reset?t=<%= token %>">Recupera password</a>
+    <p>
+        Questo link scadrà tra un'ora, nel caso risulti scaduto richiedi un'altra email
+        <a href="https://nfapp-server.herokuapp.com/recover">clicca qui</a>
+    </p>
+    <p style="opacity: 0.8; font-size: 0.8em;">
+        Questa email è stata inviata automaticamente, ti preghiamo di non rispondere <br>
+        Se pensi di aver ricevuto questo messaggio per errore cancellalo
+    </p>
+</body>
+
+</html>

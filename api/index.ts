@@ -13,12 +13,14 @@ import surveys from './surveys'
 import events from './events'
 import ss from './schoolsharing'
 import privatearea from './privatearea'
+import recovery from './recovery'
 api.use('/user', user)
 api.use('/posts', posts)
 api.use('/surveys', surveys)
 api.use('/events', events)
 api.use('/schoolsharing', ss)
 api.use('/privatearea', privatearea)
+api.use('/recovery', recovery)
 
 /* USER ENDPOINTS */
 

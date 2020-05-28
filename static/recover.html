@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script async defer>
+        window.addEventListener('load', () => {
+            document.querySelector('#form').addEventListener('submit', e => {
+                e.preventDefault()
+                fetch('/api/recovery/email', {
+                    headers: {
+                        'Content-type': 'application/json'
+                    },
+                    method: 'post',
+                    body: JSON.stringify({
+                        email: document.querySelector('#email').value
+                    })
+                }).then(async r => {
+                    let res = await r.json()
+                    if (res.success) {
+                        let e = document.querySelector('#form')
+                        e.innerHTML = '<p>Email inviata con successo, controlla la tua casella di posta</p>'
+                        document.querySelector('#error').style.display = 'none'
+                    } else {
+                        let e = document.querySelector('#error')
+                        e.innerHTML = '<p>' + res.error + '</p>'
+                        e.style.display = 'block'
+                    }
+                })
+            })
+        })
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <title>Recupera password</title>
+</head>
+
+<body>
+    <div id="title">
+        <h1>🍐 NFapp</h1>
+    </div>
+    <div id="content">
+        <div id="margined">
+            <div class="scelte" id="psw">
+                <div id="error" style="display: none;"></div>
+                <div>
+                    <div class="formheader">
+                        <h3>Recupera password</h3>
+                    </div>
+                    <form id="form" style="display: block;">
+                        <label for="email">Indirizzo l'indirizzo email collegato al tuo account:</label><br>
+                        <input type="email" name="email" id="email" required>
+                        <br>
+                        <br><input type="submit" value="manda email">
+                        <p>Riceverai un'email con un link per reimpostare la tua password</p>
+                        <p>
+                            ulteriori problemi di accesso?
+                            <a href="https://nfapp-server.herokuapp.com/privacy">Contattaci</a>
+                        </p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

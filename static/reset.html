@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script>
+        let params = new URLSearchParams(window.location.search)
+        let token = params.get('t')
+
+        fetch('/api/recovery/check/' + token).then(async r => {
+            let res = await r.json()
+            if (!res.success) {
+                let e = document.querySelector('#form')
+                e.innerHTML = '<p>Token scaduto, richiedi una nuova email <a href="/recover">da qui</a></p>'
+                document.querySelector('#error').style.display = 'none'
+            }
+        })
+
+        window.addEventListener('load', () => {
+            let conpwd = document.querySelector('#conpwd')
+            conpwd.addEventListener('input', () => {
+                conpwd.setCustomValidity(conpwd.value == document.querySelector('#password').value ? '' : 'Le password non coincidono')
+            })
+
+            document.querySelector('#form').addEventListener('submit', e => {
+                e.preventDefault()
+                fetch('/api/recovery/reset', {
+                    headers: {
+                        'Content-type': 'application/json'
+                    },
+                    method: 'post',
+                    body: JSON.stringify({
+                        token,
+                        password: conpwd.value
+                    })
+                }).then(async r => {
+                    let res = await r.json()
+                    if (res.success) {
+                        let e = document.querySelector('#form')
+                        e.innerHTML = '<p>Password reimpostata!</p>'
+                        document.querySelector('#error').style.display = 'none'
+                    } else {
+                        let e = document.querySelector('#error')
+                        e.innerHTML = '<p>' + res.error + '</p>'
+                        e.style.display = 'block'
+                    }
+                })
+            })
+        })
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <title>Reimposta password</title>
+</head>
+
+<body>
+    <div id="title">
+        <h1>🍐 NFapp</h1>
+    </div>
+    <div id="content">
+        <div id="margined">
+            <div class="scelte" id="psw">
+                <div id="error" style="display: none;"></div>
+                <div>
+                    <div class="formheader">
+                        <h3>Reimposta password</h3>
+                    </div>
+                    <form id="form" style="display: block;">
+                        <label for="password">Indirizzo l'indirizzo email collegato al tuo account:</label><br>
+                        <input type="password" name="password" id="password" placeholder="nuova password" minlength="8"
+                            required>
+                        <input type="password" name="conpwd" id="conpwd" placeholder="conferma password" required>
+                        <br>
+                        <br><input type="submit" value="reimposta password">
+                        <p>
+                            ulteriori problemi di accesso?
+                            <a href="https://nfapp-server.herokuapp.com/privacy">Contattaci</a>
+                        </p>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>
